@@ -1,47 +1,48 @@
-const input = document.querySelector("input");
+const inputPageNumber = document.getElementById("page-number");
+const inputLimit = document.getElementById("limit");
 const submitButton = document.querySelector("button");
 const outputSpan = document.querySelector("span");
 const photosContainer = document.querySelector("div");
 
 submitButton.addEventListener("click", submitButtonHandle);
 
-function submitButtonHandle() {
-    const value = input.value;
+if (loadPhotosFromLocalStorage())
+    write("Загружены последние просмотренные фото.");
 
-    if (value >= 1 && value <= 10 && !isNaN(value)) {
-        useRequest("https://picsum.photos/v2/list?limit=" + value, loadPhotos);
-        write("Загружаю фото...");
-    } else {
-        write("Число вне диапазона от 1 до 10.");
+function submitButtonHandle() {
+    const pageNumber = inputPageNumber.value;
+    const limit = inputLimit.value;
+
+    if ((pageNumber < 1 || pageNumber > 10 || isNaN(pageNumber)) && (limit < 1 || limit > 10 || isNaN(limit))) {
+        write("Номер страницы и лимит вне диапазона от 1 до 10.");
+        return;
+    } else
+    if (pageNumber < 1 || pageNumber > 10 || isNaN(pageNumber)) {
+        write("Номер страницы вне диапазона от 1 до 10.");
+        return;
+    } else
+    if (limit < 1 || limit > 10 || isNaN(limit)) {
+        write("Лимит вне диапазона от 1 до 10.");
+        return;
     }
+
+    write("Загружаю фото...");
+
+    fetch(`https://jsonplaceholder.typicode.com/photos?_page=${pageNumber}&limit=${limit}`)
+        .then((response) => response.json())
+        .then((json) => {
+            loadPhotos(json);
+            savePhotosToLocalStorage();
+            write("Фото загружены.");
+        })
+        .catch((reason) => {
+            write("Ошибка: " + reason);
+        });
 }
 
 function write(text) {
     outputSpan.innerHTML = text;
 }
-
-function useRequest(url, callback) {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-
-    xhr.onload = function() {
-        if (xhr.status !== 200) {
-            write("Статус ответа: ", xhr.status);
-        } else {
-            const result = JSON.parse(xhr.response);
-            if (callback) {
-                callback(result);
-            }
-            write("Фото загружены.");
-        }
-    };
-
-    xhr.onerror = function() {
-        write("Ошибка! Статус ответа: ", xhr.status);
-    };
-
-    xhr.send();
-};
 
 function loadPhotos(apiData) {
     let cards = String();
@@ -58,4 +59,13 @@ function loadPhotos(apiData) {
     });
 
     photosContainer.innerHTML = cards;
+}
+
+function savePhotosToLocalStorage() {
+    localStorage.setItem("last_photos", photosContainer.innerHTML);
+}
+
+function loadPhotosFromLocalStorage() {
+    photosContainer.innerHTML = localStorage.getItem("last_photos");
+    return  photosContainer.innerHTML.length > 0;
 }
